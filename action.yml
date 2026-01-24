@@ -1,0 +1,39 @@
+name: e18e Migrations
+description: Automatically create pull requests for modernization and performance opportunities
+author: James Garbutt (@43081j)
+
+branding:
+  icon: zap
+  color: 'gray-dark'
+
+inputs:
+  github-token:
+    description: 'The GitHub token for authentication'
+    required: true
+    default: ${{ github.token }}
+  working-directory:
+    description: 'Working directory relative to repository root'
+    required: false
+    default: '.'
+  include:
+    description: 'Glob patterns for source files to scan (comma-separated)'
+    required: false
+    default: 'src/**/*.{js,ts,mjs,mts,cjs,cts}'
+  base-branch:
+    description: 'The base branch to create PRs against'
+    required: false
+    default: 'main'
+  branch-prefix:
+    description: 'Prefix for the PR branch name'
+    required: false
+    default: 'e18e-migrations'
+
+outputs:
+  pr-url:
+    description: 'URL of the created pull request (empty if no changes)'
+  changes-found:
+    description: 'Whether any improvements were found (true/false)'
+
+runs:
+  using: node24
+  main: build/main.js

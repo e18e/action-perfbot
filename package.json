@@ -1,0 +1,50 @@
+{
+  "name": "@e18e/action-migrations",
+  "version": "0.0.1",
+  "description": "A GitHub action to automatically create modernization and performance pull requests",
+  "keywords": [
+    "action",
+    "github",
+    "workflow",
+    "modernization",
+    "performance"
+  ],
+  "files": [
+    "build",
+    "action.yml"
+  ],
+  "homepage": "https://github.com/e18e/action-migrations#readme",
+  "bugs": {
+    "url": "https://github.com/e18e/action-migrations/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/e18e/action-migrations.git"
+  },
+  "license": "MIT",
+  "author": "James Garbutt (https://github.com/43081j)",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "format": "prettier --write src test",
+    "lint": "node --run lint:format && node --run lint:js && node --run lint:types",
+    "lint:format": "prettier --check src test",
+    "lint:js": "eslint src test",
+    "lint:types": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@actions/core": "^2.0.2",
+    "@actions/github": "^7.0.0",
+    "@eslint/js": "^9.39.2",
+    "@types/node": "^25.0.3",
+    "esbuild": "^0.27.2",
+    "eslint": "^9.39.2",
+    "prettier": "^3.7.4",
+    "tinyglobby": "^0.2.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.52.0",
+    "vitest": "^4.0.16"
+  }
+}
