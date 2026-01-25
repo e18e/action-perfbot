@@ -1,5 +1,5 @@
 {
-  "name": "@e18e/action-migrations",
+  "name": "@e18e/action-perfbot",
   "version": "0.0.1",
   "description": "A GitHub action to automatically create modernization and performance pull requests",
   "keywords": [
@@ -13,13 +13,13 @@
     "build",
     "action.yml"
   ],
-  "homepage": "https://github.com/e18e/action-migrations#readme",
+  "homepage": "https://github.com/e18e/action-perfbot#readme",
   "bugs": {
-    "url": "https://github.com/e18e/action-migrations/issues"
+    "url": "https://github.com/e18e/action-perfbot/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/e18e/action-migrations.git"
+    "url": "git+https://github.com/e18e/action-perfbot.git"
   },
   "license": "MIT",
   "author": "James Garbutt (https://github.com/43081j)",

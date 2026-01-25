@@ -9,7 +9,7 @@ import type {FileChange, ProcessResult} from './types.js';
 import * as webFeatureCodemods from '@e18e/web-features-codemods';
 import {codemods as moduleReplacementCodemods} from 'module-replacements-codemods';
 
-const BRANCH_PREFIX = 'e18e-migrations';
+const BRANCH_PREFIX = 'e18e-perfbot';
 
 interface FileProcessResult {
   change: FileChange | null;

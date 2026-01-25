@@ -1,0 +1,20 @@
+name: perfbot
+
+on:
+  schedule:
+    # Run weekly on Monday at 9am UTC
+    - cron: '0 9 * * 1'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  perfbot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: e18e/action-perfbot@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}

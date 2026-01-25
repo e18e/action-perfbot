@@ -58,7 +58,7 @@ ${codemodList}
 
 ---
 
-*This PR was automatically created by [e18e-action-migrations](https://github.com/e18e/action-migrations)*`
+*This PR was automatically created by [e18e-action-perfbot](https://github.com/e18e/action-perfbot)*`
   });
 
   core.info(`Created PR #${pr.number}: ${pr.html_url}`);
