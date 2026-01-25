@@ -5,6 +5,8 @@ import * as fs from 'node:fs/promises';
 import {join} from 'node:path';
 import {glob} from 'tinyglobby';
 import {createPullRequest, type FileChange} from './github.js';
+import * as webFeatureCodemods from '@e18e/web-features-codemods';
+import {codemods as moduleReplacementCodemods} from 'module-replacements-codemods';
 
 const BRANCH_PREFIX = 'e18e-migrations';
 
@@ -13,18 +15,34 @@ interface ProcessResult {
   summary: string;
 }
 
-/**
- * Processes a single source file and returns any improvements.
- * This is the main extension point for adding migration logic.
- */
 async function processFile(
   filePath: string,
   content: string
 ): Promise<FileChange | null> {
-  // TODO: Implement actual migration/improvement logic here
-  // For now, this is a placeholder that returns null (no changes)
-  void filePath;
-  void content;
+  let currentContent = content;
+
+  for (const codemod of Object.values(webFeatureCodemods)) {
+    if (codemod.test({source: currentContent})) {
+      currentContent = codemod.apply({source: currentContent});
+    }
+  }
+
+  for (const createCodemod of Object.values(moduleReplacementCodemods)) {
+    const codemod = createCodemod({});
+    const result = await codemod.transform({
+      file: {source: currentContent, filename: filePath}
+    });
+    currentContent = result;
+  }
+
+  if (currentContent !== content) {
+    return {
+      path: filePath,
+      originalContent: content,
+      newContent: currentContent
+    };
+  }
+
   return null;
 }
 
@@ -77,14 +95,12 @@ async function run(): Promise<void> {
     const baseBranch = core.getInput('base-branch') || 'main';
     const branchPrefix = core.getInput('branch-prefix') || BRANCH_PREFIX;
 
-    // Parse include patterns (comma-separated)
     const includeInput =
       core.getInput('include') || 'src/**/*.{js,ts,mjs,mts,cjs,cts}';
     const includePatterns = includeInput.split(',').map((p) => p.trim());
 
     const {owner, repo} = github.context.repo;
 
-    // Scan and process files
     const result = await scanAndProcess(workspacePath, includePatterns);
 
     if (result.changes.length === 0) {
@@ -96,7 +112,6 @@ async function run(): Promise<void> {
 
     core.info(result.summary);
 
-    // Create the PR
     const octokit = github.getOctokit(token);
     const prUrl = await createPullRequest(
       octokit,

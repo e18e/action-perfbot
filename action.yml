@@ -36,4 +36,4 @@ outputs:
 
 runs:
   using: node24
-  main: build/main.js
+  main: build/index.js
