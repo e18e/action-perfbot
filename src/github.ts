@@ -3,12 +3,11 @@ import * as github from '@actions/github';
 import * as fs from 'node:fs/promises';
 import {join} from 'node:path';
 import {git} from './git.js';
+import type {ProcessResult} from './types.js';
 
-export interface FileChange {
-  path: string;
-  originalContent: string;
-  newContent: string;
-}
+const GITHUB_BOT_NAME = 'github-actions[bot]';
+const GITHUB_BOT_EMAIL =
+  '41898282+github-actions[bot]@users.noreply.github.com';
 
 /**
  * Creates a pull request with the given file changes.
@@ -20,25 +19,18 @@ export async function createPullRequest(
   repo: string,
   baseBranch: string,
   branchPrefix: string,
-  changes: FileChange[]
+  result: ProcessResult
 ): Promise<string> {
   const timestamp = Date.now();
   const branchName = `${branchPrefix}/${timestamp}`;
 
   core.info(`Creating branch: ${branchName}`);
 
-  await git(['config', 'user.name', 'github-actions[bot]'], workspacePath);
-  await git(
-    [
-      'config',
-      'user.email',
-      '41898282+github-actions[bot]@users.noreply.github.com'
-    ],
-    workspacePath
-  );
+  await git(['config', 'user.name', GITHUB_BOT_NAME], workspacePath);
+  await git(['config', 'user.email', GITHUB_BOT_EMAIL], workspacePath);
   await git(['checkout', '-b', branchName], workspacePath);
 
-  for (const change of changes) {
+  for (const change of result.changes) {
     const filePath = join(workspacePath, change.path);
     await fs.writeFile(filePath, change.newContent, 'utf8');
     core.info(`Updated: ${change.path}`);
@@ -52,13 +44,17 @@ export async function createPullRequest(
 
   await git(['push', 'origin', branchName], workspacePath);
 
+  const codemodList = result.appliedCodemods.map((c) => `- ${c}`).join('\n');
+
   const {data: pr} = await octokit.rest.pulls.create({
     owner,
     repo,
     title: 'chore: e18e modernization improvements',
     head: branchName,
     base: baseBranch,
-    body: `TODO
+    body: `This PR applies the following e18e codemods:
+
+${codemodList}
 
 ---
 

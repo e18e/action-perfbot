@@ -67332,21 +67332,19 @@ const core = __importStar(__nccwpck_require__(7484));
 const fs = __importStar(__nccwpck_require__(1455));
 const node_path_1 = __nccwpck_require__(6760);
 const git_js_1 = __nccwpck_require__(1243);
+const GITHUB_BOT_NAME = 'github-actions[bot]';
+const GITHUB_BOT_EMAIL = '41898282+github-actions[bot]@users.noreply.github.com';
 /**
  * Creates a pull request with the given file changes.
  */
-async function createPullRequest(octokit, workspacePath, owner, repo, baseBranch, branchPrefix, changes) {
+async function createPullRequest(octokit, workspacePath, owner, repo, baseBranch, branchPrefix, result) {
     const timestamp = Date.now();
     const branchName = `${branchPrefix}/${timestamp}`;
     core.info(`Creating branch: ${branchName}`);
-    await (0, git_js_1.git)(['config', 'user.name', 'github-actions[bot]'], workspacePath);
-    await (0, git_js_1.git)([
-        'config',
-        'user.email',
-        '41898282+github-actions[bot]@users.noreply.github.com'
-    ], workspacePath);
+    await (0, git_js_1.git)(['config', 'user.name', GITHUB_BOT_NAME], workspacePath);
+    await (0, git_js_1.git)(['config', 'user.email', GITHUB_BOT_EMAIL], workspacePath);
     await (0, git_js_1.git)(['checkout', '-b', branchName], workspacePath);
-    for (const change of changes) {
+    for (const change of result.changes) {
         const filePath = (0, node_path_1.join)(workspacePath, change.path);
         await fs.writeFile(filePath, change.newContent, 'utf8');
         core.info(`Updated: ${change.path}`);
@@ -67354,13 +67352,16 @@ async function createPullRequest(octokit, workspacePath, owner, repo, baseBranch
     await (0, git_js_1.git)(['add', '-A'], workspacePath);
     await (0, git_js_1.git)(['commit', '-m', 'chore: apply e18e modernization improvements'], workspacePath);
     await (0, git_js_1.git)(['push', 'origin', branchName], workspacePath);
+    const codemodList = result.appliedCodemods.map((c) => `- ${c}`).join('\n');
     const { data: pr } = await octokit.rest.pulls.create({
         owner,
         repo,
         title: 'chore: e18e modernization improvements',
         head: branchName,
         base: baseBranch,
-        body: `TODO
+        body: `This PR applies the following e18e codemods:
+
+${codemodList}
 
 ---
 
@@ -67426,32 +67427,42 @@ const module_replacements_codemods_1 = __nccwpck_require__(4800);
 const BRANCH_PREFIX = 'e18e-migrations';
 async function processFile(filePath, content) {
     let currentContent = content;
-    for (const codemod of Object.values(webFeatureCodemods)) {
+    const appliedCodemods = [];
+    for (const [name, codemod] of Object.entries(webFeatureCodemods)) {
         if (codemod.test({ source: currentContent })) {
             currentContent = codemod.apply({ source: currentContent });
+            appliedCodemods.push(name);
         }
     }
-    for (const createCodemod of Object.values(module_replacements_codemods_1.codemods)) {
+    for (const [name, createCodemod] of Object.entries(module_replacements_codemods_1.codemods)) {
         const codemod = createCodemod({});
+        const before = currentContent;
         const result = await codemod.transform({
             file: { source: currentContent, filename: filePath }
         });
         currentContent = result;
+        if (result !== before) {
+            appliedCodemods.push(name);
+        }
     }
     if (currentContent !== content) {
         return {
-            path: filePath,
-            originalContent: content,
-            newContent: currentContent
+            change: {
+                path: filePath,
+                originalContent: content,
+                newContent: currentContent
+            },
+            appliedCodemods
         };
     }
-    return null;
+    return { change: null, appliedCodemods: [] };
 }
 /**
  * Scans source files and collects all improvements.
  */
 async function scanAndProcess(workspacePath, includePatterns) {
     const changes = [];
+    const appliedCodemodsSet = new Set();
     core.info(`Scanning with patterns: ${includePatterns.join(', ')}`);
     const files = await (0, tinyglobby_1.glob)(includePatterns, {
         cwd: workspacePath,
@@ -67461,16 +67472,19 @@ async function scanAndProcess(workspacePath, includePatterns) {
     for (const file of files) {
         const absolutePath = (0, node_path_1.join)(workspacePath, file);
         const content = await fs.readFile(absolutePath, 'utf8');
-        const change = await processFile(file, content);
-        if (change) {
-            changes.push(change);
+        const result = await processFile(file, content);
+        if (result.change) {
+            changes.push(result.change);
+            for (const codemod of result.appliedCodemods) {
+                appliedCodemodsSet.add(codemod);
+            }
             core.info(`Found improvements in: ${file}`);
         }
     }
     const summary = changes.length > 0
         ? `Found improvements in ${changes.length} file(s)`
         : 'No improvements found';
-    return { changes, summary };
+    return { changes, appliedCodemods: [...appliedCodemodsSet].sort(), summary };
 }
 async function run() {
     try {
@@ -67493,7 +67507,7 @@ async function run() {
         }
         core.info(result.summary);
         const octokit = github.getOctokit(token);
-        const prUrl = await (0, github_js_1.createPullRequest)(octokit, workspacePath, owner, repo, baseBranch, branchPrefix, result.changes);
+        const prUrl = await (0, github_js_1.createPullRequest)(octokit, workspacePath, owner, repo, baseBranch, branchPrefix, result);
         core.setOutput('pr-url', prUrl);
         core.setOutput('changes-found', 'true');
     }

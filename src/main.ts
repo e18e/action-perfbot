@@ -4,46 +4,58 @@ import * as github from '@actions/github';
 import * as fs from 'node:fs/promises';
 import {join} from 'node:path';
 import {glob} from 'tinyglobby';
-import {createPullRequest, type FileChange} from './github.js';
+import {createPullRequest} from './github.js';
+import type {FileChange, ProcessResult} from './types.js';
 import * as webFeatureCodemods from '@e18e/web-features-codemods';
 import {codemods as moduleReplacementCodemods} from 'module-replacements-codemods';
 
 const BRANCH_PREFIX = 'e18e-migrations';
 
-interface ProcessResult {
-  changes: FileChange[];
-  summary: string;
+interface FileProcessResult {
+  change: FileChange | null;
+  appliedCodemods: string[];
 }
 
 async function processFile(
   filePath: string,
   content: string
-): Promise<FileChange | null> {
+): Promise<FileProcessResult> {
   let currentContent = content;
+  const appliedCodemods: string[] = [];
 
-  for (const codemod of Object.values(webFeatureCodemods)) {
+  for (const [name, codemod] of Object.entries(webFeatureCodemods)) {
     if (codemod.test({source: currentContent})) {
       currentContent = codemod.apply({source: currentContent});
+      appliedCodemods.push(name);
     }
   }
 
-  for (const createCodemod of Object.values(moduleReplacementCodemods)) {
+  for (const [name, createCodemod] of Object.entries(
+    moduleReplacementCodemods
+  )) {
     const codemod = createCodemod({});
+    const before = currentContent;
     const result = await codemod.transform({
       file: {source: currentContent, filename: filePath}
     });
     currentContent = result;
+    if (result !== before) {
+      appliedCodemods.push(name);
+    }
   }
 
   if (currentContent !== content) {
     return {
-      path: filePath,
-      originalContent: content,
-      newContent: currentContent
+      change: {
+        path: filePath,
+        originalContent: content,
+        newContent: currentContent
+      },
+      appliedCodemods
     };
   }
 
-  return null;
+  return {change: null, appliedCodemods: []};
 }
 
 /**
@@ -54,6 +66,7 @@ async function scanAndProcess(
   includePatterns: string[]
 ): Promise<ProcessResult> {
   const changes: FileChange[] = [];
+  const appliedCodemodsSet = new Set<string>();
 
   core.info(`Scanning with patterns: ${includePatterns.join(', ')}`);
 
@@ -68,9 +81,12 @@ async function scanAndProcess(
     const absolutePath = join(workspacePath, file);
     const content = await fs.readFile(absolutePath, 'utf8');
 
-    const change = await processFile(file, content);
-    if (change) {
-      changes.push(change);
+    const result = await processFile(file, content);
+    if (result.change) {
+      changes.push(result.change);
+      for (const codemod of result.appliedCodemods) {
+        appliedCodemodsSet.add(codemod);
+      }
       core.info(`Found improvements in: ${file}`);
     }
   }
@@ -80,7 +96,7 @@ async function scanAndProcess(
       ? `Found improvements in ${changes.length} file(s)`
       : 'No improvements found';
 
-  return {changes, summary};
+  return {changes, appliedCodemods: [...appliedCodemodsSet].sort(), summary};
 }
 
 async function run(): Promise<void> {
@@ -120,7 +136,7 @@ async function run(): Promise<void> {
       repo,
       baseBranch,
       branchPrefix,
-      result.changes
+      result
     );
 
     core.setOutput('pr-url', prUrl);
