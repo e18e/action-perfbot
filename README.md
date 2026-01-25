@@ -1,5 +1,8 @@
 # e18e/action-perfbot
 
+> [!WARNING]
+> This repository is very early stages and is unpublished. Keep an eye out on the [e18e.dev](https://e18e.dev) website for updates.
+
 > A GitHub action for automatically opening modernization and performance PRs
 
 ## What it does
