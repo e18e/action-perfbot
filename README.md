@@ -62,6 +62,14 @@ permissions:
   pull-requests: write # To create pull requests
 ```
 
+## Sponsors
+
+<p align="center">
+  <a href="https://e18e.dev/sponsors.svg">
+    <img src="https://e18e.dev/sponsors.svg" alt="e18e community sponsors" />
+  </a>
+</p>
+
 ## License
 
 MIT
