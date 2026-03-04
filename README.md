@@ -65,7 +65,7 @@ permissions:
 ## Sponsors
 
 <p align="center">
-  <a href="http://opencollective.com/e18e">
+  <a href="https://e18e.dev/sponsor">
     <img src="https://e18e.dev/sponsors.svg" alt="e18e community sponsors" />
   </a>
 </p>
