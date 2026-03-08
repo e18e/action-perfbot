@@ -35,18 +35,18 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@actions/core": "^2.0.2",
-    "@actions/github": "^7.0.0",
+    "@actions/core": "^3.0.0",
+    "@actions/github": "^9.0.0",
     "@e18e/web-features-codemods": "^0.2.0",
-    "@eslint/js": "^9.39.2",
-    "@types/node": "^25.0.3",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.3.5",
     "@vercel/ncc": "^0.38.4",
-    "eslint": "^9.39.2",
+    "eslint": "^10.0.3",
     "module-replacements-codemods": "^1.2.1",
     "prettier": "^3.7.4",
     "tinyglobby": "^0.2.15",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.52.0",
+    "typescript-eslint": "^8.56.1",
     "vitest": "^4.0.16"
   }
 }
